@@ -3,132 +3,186 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Phiên Toà Kinh Tế — Tranh luận Kinh tế chính trị Mác – Lênin</title>
-<meta name="description" content="Game giả lập phiên toà: tranh luận với AI về độc quyền và độc quyền nhà nước (Kinh tế chính trị Mác – Lênin).">
+<title>Phiên Toà Kinh Tế — Ôn tập độc quyền & độc quyền nhà nước</title>
+<meta name="description" content="Game ôn tập Kinh tế chính trị Mác – Lênin: trả lời câu hỏi nhanh và vận dụng lý luận về độc quyền, độc quyền nhà nước để tranh luận với đối thủ AI trong một phiên toà giả lập.">
+<meta name="theme-color" content="#15100c">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Phiên Toà Kinh Tế">
+<meta property="og:description" content="Ôn tập và vận dụng lý luận về độc quyền, độc quyền nhà nước qua một phiên toà giả lập với đối thủ AI.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2315100c'/%3E%3Cg fill='none' stroke='%23f0cf7e' stroke-width='4' stroke-linecap='round'%3E%3Cpath d='M32 12v38M14 20h36M14 20l-7 16M14 20l7 16M50 20l-7 16M50 20l7 16'/%3E%3C/g%3E%3Cpath d='M5 36q9 9 18 0zM41 36q9 9 18 0zM22 52h20' fill='%23f0cf7e' stroke='%23f0cf7e' stroke-width='3'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=Lora:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- ============ MÀN HÌNH CHUẨN BỊ ============ -->
+<!-- ============ TRANG CHỦ ============ -->
 <section id="screen-setup" class="screen active">
   <header class="hero">
     <div class="hero-top">
       <div class="brand">
-        <svg class="gavel" viewBox="0 0 64 64" aria-hidden="true"><g fill="currentColor"><g transform="rotate(-40 30 24)"><rect x="14" y="14" width="32" height="14" rx="3"/><rect x="10" y="12" width="6" height="18" rx="2"/><rect x="44" y="12" width="6" height="18" rx="2"/><rect x="27" y="28" width="6" height="30" rx="3"/></g><rect x="30" y="52" width="28" height="6" rx="2"/></g></svg>
+        <svg class="gavel" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"><path d="M32 10v40M14 18h36M14 18l-7 16M14 18l7 16M50 18l-7 16M50 18l7 16"/></g><path d="M5 34q9 9 18 0zM41 34q9 9 18 0zM22 52h20" fill="currentColor" stroke="currentColor" stroke-width="3"/></svg>
         <span>Phiên Toà Kinh Tế</span>
       </div>
-      <button class="btn ghost" id="btn-settings" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3h-4l-.3 2.9a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.4 7.4 0 0 0 1.7 1L11 21h4l.3-2.9a7.4 7.4 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5A3.5 3.5 0 1 1 13 8.5a3.5 3.5 0 0 1 0 7z"/></svg>
-        Cài đặt AI
-      </button>
+      <nav class="top-nav">
+        <a href="#how" class="nav-link">Cách chơi</a>
+        <a href="#about" class="nav-link">Giới thiệu</a>
+        <button class="btn ghost small" id="btn-settings" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3h-4l-.3 2.9a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.4 7.4 0 0 0 1.7 1L11 21h4l.3-2.9a7.4 7.4 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5A3.5 3.5 0 1 1 13 8.5a3.5 3.5 0 0 1 0 7z"/></svg>
+          Cài đặt AI
+        </button>
+      </nav>
     </div>
-    <h1>Hãy bảo vệ lập luận của bạn<br>trước Hội đồng xét xử</h1>
-    <p class="lead">Tranh luận trực tiếp với đối thủ AI về <strong>độc quyền và độc quyền nhà nước</strong> trong học phần Kinh tế chính trị Mác – Lênin. Thẩm phán AI sẽ chấm điểm dựa trên giáo trình.</p>
+    <p class="kicker">Kinh tế chính trị Mác – Lênin · Độc quyền và độc quyền nhà nước</p>
+    <h1>Nắm vững lý luận.<br>Vận dụng trước Thẩm phán.</h1>
+    <p class="lead">Trả lời câu hỏi nhanh, rồi dùng kiến thức giáo trình để phân tích tình huống thực tế và tranh luận với đối thủ AI. Mọi lập luận đều được đối chiếu với giáo trình.</p>
     <div id="mode-banner" class="mode-banner"></div>
   </header>
 
   <main class="setup">
     <div class="step">
-      <h2><span class="num">1</span> Chọn vụ án</h2>
-      <div id="case-grid" class="case-grid"></div>
+      <h2><span class="num">1</span> Chọn chế độ</h2>
+      <div class="mode-pick">
+        <label class="mode-card">
+          <input type="radio" name="mode" value="debate" checked>
+          <span class="mode-icon" aria-hidden="true">⚖</span>
+          <span class="mode-name">Phiên toà tranh luận</span>
+          <span class="mode-desc">Mỗi vòng: một câu hỏi nhanh + một vấn đề vận dụng để tranh luận với đối thủ AI. Thẩm phán AI chấm điểm và nhận xét.</span>
+          <span class="mode-meta">10–15 phút · cần Gemini API key (hoặc dùng đối thủ mẫu)</span>
+        </label>
+        <label class="mode-card">
+          <input type="radio" name="mode" value="quick">
+          <span class="mode-icon" aria-hidden="true">✦</span>
+          <span class="mode-name">Ôn tập nhanh</span>
+          <span class="mode-desc">10 câu trắc nghiệm ngẫu nhiên do Thẩm phán hỏi. Mỗi câu có giải thích và trích dẫn mục giáo trình.</span>
+          <span class="mode-meta">3–5 phút · không cần API key</span>
+        </label>
+      </div>
     </div>
 
-    <div class="step two-col">
-      <div>
-        <h2><span class="num">2</span> Chọn vai</h2>
-        <div class="role-pick" id="role-pick">
-          <label class="role-card prosecution">
-            <input type="radio" name="role" value="prosecution" checked>
-            <span class="role-name">Công tố viên</span>
-            <span class="role-desc">Bảo vệ luận điểm của vụ án — lập trường khớp với giáo trình.</span>
-          </label>
-          <label class="role-card defense">
-            <input type="radio" name="role" value="defense">
-            <span class="role-name">Luật sư</span>
-            <span class="role-desc">Phản bác luận điểm — đứng về phía phản đề, khó hơn.</span>
-          </label>
+    <div id="debate-setup">
+      <div class="step">
+        <h2><span class="num">2</span> Chọn tình huống</h2>
+        <div id="case-grid" class="case-grid"></div>
+      </div>
+
+      <div class="step two-col">
+        <div>
+          <h2><span class="num">3</span> Chọn vai</h2>
+          <div class="role-pick" id="role-pick">
+            <label class="role-card prosecution">
+              <input type="radio" name="role" value="prosecution" checked>
+              <span class="role-name">Công tố viên</span>
+              <span class="role-desc">Bảo vệ luận điểm — lập trường khớp với giáo trình.</span>
+            </label>
+            <label class="role-card defense">
+              <input type="radio" name="role" value="defense">
+              <span class="role-name">Luật sư</span>
+              <span class="role-desc">Phản biện luận điểm — đứng về phía phản đề, thử thách hơn.</span>
+            </label>
+          </div>
+        </div>
+        <div>
+          <h2><span class="num">4</span> Thiết lập</h2>
+          <div class="rules">
+            <label>Độ khó của đối thủ
+              <select id="opt-difficulty">
+                <option value="easy">Dễ — lập luận sơ sài, có lỗi kiến thức dễ bắt</option>
+                <option value="normal" selected>Vừa — chặt chẽ, bám giáo trình</option>
+                <option value="hard">Khó — sắc bén, cài lập luận sai bản chất tinh vi</option>
+              </select>
+            </label>
+            <label>Số vòng
+              <select id="opt-rounds">
+                <option value="2">2 vòng</option>
+                <option value="3" selected>3 vòng</option>
+              </select>
+            </label>
+            <label>Thời gian mỗi lượt trình bày
+              <select id="opt-time">
+                <option value="90">90 giây</option>
+                <option value="150" selected>150 giây</option>
+                <option value="240">4 phút</option>
+                <option value="0">Không giới hạn</option>
+              </select>
+            </label>
+          </div>
         </div>
       </div>
-      <div>
-        <h2><span class="num">3</span> Luật phiên toà</h2>
-        <div class="rules">
-          <label>Độ khó của đối thủ
-            <select id="opt-difficulty">
-              <option value="easy">Dễ — lập luận sơ sài, có lỗi dễ bắt</option>
-              <option value="normal" selected>Vừa — chặt chẽ, bám giáo trình</option>
-              <option value="hard">Khó — sắc bén, cài ngụy biện tinh vi</option>
-            </select>
-          </label>
-          <label>Số vòng tranh luận
-            <select id="opt-rounds">
-              <option value="2">2 vòng</option>
-              <option value="3" selected>3 vòng</option>
-              <option value="4">4 vòng</option>
-            </select>
-          </label>
-          <label>Thời gian mỗi lượt
-            <select id="opt-time">
-              <option value="90">90 giây</option>
-              <option value="150" selected>150 giây</option>
-              <option value="240">4 phút</option>
-              <option value="0">Không giới hạn</option>
-            </select>
-          </label>
+    </div>
+
+    <div id="quick-setup" hidden>
+      <div class="step">
+        <h2><span class="num">2</span> Ôn tập nhanh</h2>
+        <div class="quick-card">
+          <div><b>10 câu</b><span>chọn ngẫu nhiên</span></div>
+          <div><b id="quiz-total">24</b><span>câu trong ngân hàng</span></div>
+          <div><b>30 giây</b><span>mỗi câu</span></div>
+          <div><b>21</b><span>mục giáo trình</span></div>
         </div>
       </div>
     </div>
 
     <div class="start-row">
       <button class="btn gold big" id="btn-start" type="button" disabled>Mở phiên toà</button>
-      <p class="muted small" id="start-hint">Chọn một vụ án để bắt đầu.</p>
+      <p class="muted small" id="start-hint">Chọn một tình huống để bắt đầu.</p>
     </div>
 
-    <details class="howto">
-      <summary>Cách chơi</summary>
-      <ol>
-        <li>Thẩm phán đọc cáo trạng. Công tố viên luôn trình bày trước trong mỗi vòng, sau đó tới Luật sư.</li>
-        <li>Mỗi lượt có giới hạn thời gian. Hết giờ, phần bạn đã viết sẽ được nộp tự động.</li>
-        <li>Thấy đối thủ nói sai lý luận, lạc đề hay bịa số liệu? Bấm <b>Phản đối!</b> và nêu lý do. Phản đối đúng: <b>+3 điểm</b>, sai: <b>−2 điểm</b>.</li>
-        <li>Giữa phiên, Thẩm phán sẽ chất vấn bạn một câu hỏi.</li>
-        <li>Cuối phiên, Thẩm phán chấm 4 tiêu chí (mỗi tiêu chí 10 điểm): đúng lý luận, dẫn chứng, phản bác, logic.</li>
-        <li>Mẹo: trích mã mục giáo trình như <code>[II.1.b]</code> để lập luận có sức nặng. Tab “Giáo trình” giúp bạn tra cứu nhanh.</li>
-      </ol>
-    </details>
+    <section class="info" id="how">
+      <h2>Cách chơi</h2>
+      <div class="info-grid">
+        <div class="info-card"><b>1. Câu hỏi nhanh</b><p>Đầu mỗi vòng, Thẩm phán hỏi một câu trắc nghiệm về kiến thức nền của tình huống. Có 30 giây để chọn.</p></div>
+        <div class="info-card"><b>2. Vấn đề vận dụng</b><p>Thẩm phán nêu vấn đề của vòng. Công tố viên trình bày trước, Luật sư sau. Hãy dùng đúng khái niệm và trích mã mục như <code>[II.1.b]</code>.</p></div>
+        <div class="info-card"><b>3. Phản đối!</b><p>Thấy đối thủ nói sai kiến thức hay bịa số liệu? Bấm <b>Phản đối!</b> và nêu lý do. Đúng: +3 điểm, sai: −2 điểm.</p></div>
+        <div class="info-card"><b>4. Kết quả</b><p>Điểm trên thang 100: tranh luận (kiến thức, vận dụng, dẫn chứng, phản biện) và câu hỏi nhanh. Cuối phiên có phần ôn lại.</p></div>
+      </div>
+    </section>
+
+    <section class="info" id="about">
+      <h2>Giới thiệu</h2>
+      <p>Phiên Toà Kinh Tế là dự án học tập cho học phần Kinh tế chính trị Mác – Lênin. Nội dung lấy từ giáo trình Chương 4, Mục II–III: lý luận của V.I. Lênin về đặc điểm kinh tế của độc quyền và độc quyền nhà nước, biểu hiện mới ngày nay, và vai trò lịch sử của chủ nghĩa tư bản.</p>
+      <ul class="notes">
+        <li><b>AI có thể sai.</b> Đối thủ và Thẩm phán dùng mô hình Gemini của Google; hãy đối chiếu với giáo trình qua tab “Giáo trình” trong phòng xử án.</li>
+        <li><b>Quyền riêng tư.</b> API key chỉ lưu trong trình duyệt của bạn và chỉ gửi tới Google Gemini. Trang không có máy chủ riêng, không thu thập dữ liệu.</li>
+        <li><b>Không cần key?</b> Chọn “Ôn tập nhanh”, hoặc bật “Chơi không cần AI” trong Cài đặt AI để tranh luận với đối thủ mẫu.</li>
+      </ul>
+    </section>
   </main>
-  <footer class="foot">Nguồn tài liệu: <span id="corpus-source"></span></footer>
+  <footer class="foot">Nguồn: <span id="corpus-source"></span> · Dự án học tập, phi thương mại</footer>
 </section>
 
 <!-- ============ PHÒNG XỬ ÁN ============ -->
 <section id="screen-court" class="screen">
   <header class="court-bar">
-    <button class="btn ghost small" id="btn-leave" type="button">← Rời phiên</button>
+    <button class="btn ghost small" id="btn-leave" type="button">← Thoát</button>
     <div class="court-title">
       <div class="eyebrow" id="court-topic"></div>
       <div class="name" id="court-case"></div>
     </div>
     <div class="court-status">
       <div class="phase" id="court-phase">Khai mạc</div>
-      <div class="obj-score" title="Điểm từ phản đối">Phản đối: <b id="obj-score">0</b></div>
+      <div class="obj-score" id="score-live" title="Điểm tạm tính">Câu hỏi: <b id="quiz-score">0/0</b></div>
     </div>
   </header>
 
   <div class="court-body">
     <main class="transcript-wrap">
       <div class="stage-wrap"><div id="stage" class="stage"></div></div>
+
       <div class="composer" id="composer">
         <div class="composer-head">
           <span id="turn-label">Đang chờ…</span>
           <span class="timer" id="timer" hidden><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15.5" class="track"/><circle cx="18" cy="18" r="15.5" class="ring" id="timer-ring"/></svg><b id="timer-text">0:00</b></span>
         </div>
-        <textarea id="input" rows="3" placeholder="Thưa Hội đồng xét xử, …" disabled></textarea>
+        <div class="focus-line" id="focus-line" hidden></div>
+        <textarea id="input" rows="3" placeholder="Thưa Thẩm phán, …" disabled></textarea>
         <div class="composer-actions">
           <button class="btn objection" id="btn-object" type="button" disabled>Phản đối!</button>
           <span class="muted small" id="char-count"></span>
           <button class="btn gold" id="btn-send" type="button" disabled>Trình bày <kbd>Ctrl</kbd>+<kbd>Enter</kbd></button>
         </div>
+        <div class="choices" id="choices" hidden></div>
       </div>
     </main>
 
@@ -152,7 +206,15 @@
 <dialog id="dlg-settings" class="dialog">
   <form method="dialog" class="dialog-body" id="settings-form">
     <h3>Cài đặt AI</h3>
-    <p class="muted small">Key chỉ được lưu trong trình duyệt của máy này, không gửi đi đâu ngoài Google Gemini API.</p>
+    <p class="muted small">Chế độ “Phiên toà tranh luận” dùng Google Gemini làm đối thủ và Thẩm phán. Key chỉ lưu trong trình duyệt của máy này.</p>
+    <details class="getkey">
+      <summary>Chưa có key? Lấy miễn phí trong 1 phút</summary>
+      <ol>
+        <li>Mở <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> và đăng nhập tài khoản Google.</li>
+        <li>Bấm <b>Create API key</b>, sao chép key (bắt đầu bằng <code>AIza</code>).</li>
+        <li>Dán vào ô bên dưới, bấm <b>Tải danh sách</b> để chọn model, rồi <b>Lưu</b>.</li>
+      </ol>
+    </details>
     <label>Gemini API key
       <input type="password" id="set-key" autocomplete="off" spellcheck="false" placeholder="AIza…">
     </label>
@@ -162,9 +224,10 @@
         <button class="btn ghost small" type="button" id="btn-load-models">Tải danh sách</button>
       </div>
     </label>
-    <label class="check"><input type="checkbox" id="set-demo"> Chế độ thử (không cần API — đối thủ và điểm số chỉ mang tính minh hoạ)</label>
+    <label class="check"><input type="checkbox" id="set-demo"> Chơi không cần AI — đối thủ dùng lập luận mẫu từ giáo trình, điểm tranh luận chỉ ước lượng</label>
     <p class="small" id="settings-msg"></p>
     <div class="dialog-actions">
+      <button class="btn ghost" type="button" id="btn-clear-key">Xoá key</button>
       <button class="btn ghost" type="button" id="btn-test-key">Kiểm tra kết nối</button>
       <button class="btn gold" value="save" id="btn-save-settings">Lưu</button>
     </div>
@@ -175,9 +238,9 @@
 <dialog id="dlg-object" class="dialog">
   <form method="dialog" class="dialog-body">
     <h3 class="obj-title">Phản đối!</h3>
-    <p class="muted small">Nêu ngắn gọn đối phương sai ở đâu: hiểu sai lý luận, xuyên tạc giáo trình, lạc đề hay bịa số liệu.</p>
+    <p class="muted small">Chỉ ra lỗi kiến thức của đối thủ: hiểu sai khái niệm, xuyên tạc giáo trình, lạc đề hay bịa số liệu.</p>
     <blockquote id="obj-quote"></blockquote>
-    <textarea id="obj-reason" rows="3" placeholder="Phía đối phương đã nhầm… vì giáo trình [II.1.b] chỉ rõ…"></textarea>
+    <textarea id="obj-reason" rows="3" placeholder="Đối thủ đã nhầm… vì giáo trình [II.1.b] chỉ rõ…"></textarea>
     <div class="dialog-actions">
       <button class="btn ghost" value="cancel" type="submit">Huỷ</button>
       <button class="btn objection" value="ok" type="submit">Gửi phản đối</button>
@@ -185,39 +248,40 @@
   </form>
 </dialog>
 
-<!-- ============ TUYÊN ÁN ============ -->
+<!-- ============ KẾT QUẢ ============ -->
 <div id="verdict" class="verdict" hidden>
-  <div class="verdict-card">
+  <div class="verdict-card" role="dialog" aria-labelledby="v-title">
     <div class="verdict-head">
-      <div class="eyebrow">Bản án</div>
+      <div class="eyebrow">Kết quả</div>
+      <div class="v-score"><b id="v-score">0</b><span>/100</span></div>
       <h2 id="v-title"></h2>
       <p id="v-sub" class="muted"></p>
     </div>
-    <div class="v-totals">
-      <div class="v-side you"><div class="lbl">Bạn</div><div class="big" id="v-you"></div></div>
-      <div class="v-vs">—</div>
-      <div class="v-side ai"><div class="lbl">Đối thủ AI</div><div class="big" id="v-ai"></div></div>
+    <div class="v-breakdown" id="v-breakdown"></div>
+    <div id="v-debate">
+      <div id="v-criteria" class="v-criteria"></div>
+      <blockquote id="v-text" class="v-text"></blockquote>
+      <div class="v-grid">
+        <div><h4>Điểm mạnh</h4><ul id="v-strengths"></ul></div>
+        <div><h4>Cần cải thiện</h4><ul id="v-improve"></ul></div>
+      </div>
     </div>
-    <div id="v-criteria" class="v-criteria"></div>
-    <blockquote id="v-text" class="v-text"></blockquote>
-    <div class="v-grid">
-      <div><h4>Điểm mạnh</h4><ul id="v-strengths"></ul></div>
-      <div><h4>Cần cải thiện</h4><ul id="v-improve"></ul></div>
-    </div>
-    <div><h4>Kiến thức cần nhớ</h4><ul id="v-keys" class="v-keys"></ul></div>
+    <div id="v-review-wrap"><h4>Câu cần ôn lại</h4><ul id="v-review" class="v-review"></ul></div>
+    <div id="v-keys-wrap"><h4>Kiến thức cần nhớ</h4><ul id="v-keys" class="v-keys"></ul></div>
     <p class="muted small" id="v-note"></p>
     <div class="dialog-actions">
       <button class="btn ghost" id="btn-export" type="button">Tải biên bản</button>
-      <button class="btn ghost" id="btn-review" type="button">Xem lại phiên toà</button>
-      <button class="btn gold" id="btn-again" type="button">Phiên toà mới</button>
+      <button class="btn ghost" id="btn-review" type="button">Xem lại phiên</button>
+      <button class="btn gold" id="btn-again" type="button">Chơi lại</button>
     </div>
   </div>
 </div>
 
-<div id="toast" class="toast" hidden></div>
+<div id="toast" class="toast" role="status" hidden></div>
 
 <script src="data/corpus.js"></script>
 <script src="data/cases.js"></script>
+<script src="data/quiz.js"></script>
 <script src="js/retrieval.js"></script>
 <script src="js/scene.js"></script>
 <script src="js/gemini.js"></script>

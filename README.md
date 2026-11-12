@@ -1,48 +1,60 @@
 # Phiên Toà Kinh Tế
 
-Game giả lập phiên toà: người chơi tranh luận với đối thủ AI (Gemini) về **độc quyền và độc quyền nhà nước** trong học phần Kinh tế chính trị Mác – Lênin (Chương 4, Mục II–III). Một Thẩm phán AI đọc cáo trạng, chất vấn, phán quyết phản đối và chấm điểm theo giáo trình.
+Game ôn tập **Kinh tế chính trị Mác – Lênin** về **độc quyền và độc quyền nhà nước** (giáo trình Chương 4, Mục II–III). Người chơi trả lời câu hỏi nhanh và vận dụng lý luận để phân tích tình huống thực tế, tranh luận với đối thủ AI trong một phiên toà giả lập. Thẩm phán AI chấm điểm và nhận xét dựa trên giáo trình.
 
-Toàn bộ là trang tĩnh (HTML/CSS/JS), không cần máy chủ: chạy được trên GitHub Pages hoặc mở trực tiếp file `index.html`.
+## Chế độ chơi
 
-## Chạy thử trên máy
+**Phiên toà tranh luận** (10–15 phút)
+- Chọn 1 trong 6 tình huống và vai: *Công tố viên* (bảo vệ luận điểm, khớp giáo trình) hoặc *Luật sư* (phản biện, thử thách hơn).
+- Mỗi vòng có hai phần:
+  1. **Câu hỏi nhanh**: một câu trắc nghiệm, 30 giây.
+  2. **Vấn đề vận dụng**: hai bên lần lượt trình bày.
+- Giữa phiên, Thẩm phán hỏi thêm một câu vận dụng.
+- Thấy đối thủ sai kiến thức thì bấm **Phản đối!**: đúng +3 điểm, sai −2 điểm.
+- Kết quả tính trên thang 100: tranh luận chiếm 60% (kiến thức, vận dụng, dẫn chứng, phản biện), câu hỏi nhanh 40%, cộng điểm phản đối.
+- Cần Gemini API key. Không có key thì bật “Chơi không cần AI” để tranh luận với đối thủ mẫu.
 
-Mở `index.html` bằng Chrome/Edge. Vào **Cài đặt AI**:
-- Dán Gemini API key → bấm **Tải danh sách** để chọn model → **Kiểm tra kết nối** → **Lưu**.
-- Hoặc tick **Chế độ thử** để chơi không cần key (đối thủ và điểm số chỉ minh hoạ).
+**Ôn tập nhanh** (3–5 phút, không cần key)
+- 10 câu trắc nghiệm chọn ngẫu nhiên từ 24 câu, mỗi câu 30 giây.
+- Sau mỗi câu có giải thích và mã mục giáo trình.
 
-Key chỉ lưu trong trình duyệt của máy đó (localStorage), không nằm trong code.
+Trong phòng xử án, tab **Giáo trình** cho tra cứu toàn bộ 21 mục. Bấm vào mã mục như `[II.1.b]` để mở đúng đoạn tương ứng.
+
+## Chạy trên máy
+
+Giải nén rồi mở `index.html` bằng Chrome, Edge hoặc Firefox. Không cần cài đặt gì.
+
+## Lấy Gemini API key (miễn phí)
+
+1. Mở [aistudio.google.com/apikey](https://aistudio.google.com/apikey), đăng nhập Google, bấm **Create API key**.
+2. Trong game, bấm **Cài đặt AI** → dán key → **Tải danh sách** để chọn model → **Lưu**.
+
+Key chỉ lưu trong trình duyệt của bạn (localStorage) và chỉ gửi tới Google Gemini. Trang không có máy chủ riêng và không thu thập dữ liệu.
 
 ## Đưa lên GitHub Pages
 
-1. Tạo repo mới trên GitHub (ví dụ `phien-toa-kinh-te`), tải toàn bộ thư mục này lên (giữ nguyên cấu trúc).
-2. Vào **Settings → Pages** → *Source*: **Deploy from a branch** → chọn nhánh `main`, thư mục `/ (root)` → **Save**.
-3. Sau 1–2 phút, trang có địa chỉ `https://<tên-tài-khoản>.github.io/phien-toa-kinh-te/`.
-4. Trên máy trình chiếu, mở trang → **Cài đặt AI** → dán key.
+1. Repo cần giữ đúng cấu trúc thư mục: `index.html`, `style.css`, `js/`, `data/` nằm ở gốc repo.
+2. Vào **Settings → Pages** → *Branch*: `main`, thư mục `/ (root)` → **Save**.
+3. Sau 1–2 phút, trang có địa chỉ `https://<tài-khoản>.github.io/<tên-repo>/`.
 
-**Không commit API key vào repo.** Repo GitHub Pages là công khai.
-
-Nên giới hạn key cho an toàn: vào Google Cloud Console → *APIs & Services → Credentials* → chọn key → *Application restrictions: Websites* → thêm `https://<tên-tài-khoản>.github.io/*`. Sau buổi trình bày có thể xoá key hoặc tạo key mới.
+**Không bao giờ commit API key vào repo.** Nên giới hạn key trong Google Cloud Console: *Credentials → API key → Website restrictions*, thêm `https://<tài-khoản>.github.io/*`.
 
 ## Cấu trúc
 
 | File | Nội dung |
 | --- | --- |
-| `index.html` | Giao diện: chọn vụ án, phòng xử án, cài đặt, bản án |
-| `style.css` | Giao diện phòng xử án |
-| `data/corpus.js` | Giáo trình đã cắt thành 21 đoạn có mã mục (II.1.a … III.3.b4) và số trang |
-| `data/cases.js` | 6 vụ án: bối cảnh, luận điểm, lập trường hai bên, gợi ý, câu chất vấn mẫu |
-| `js/scene.js` | Cảnh phòng xử án (SVG), nhân vật, bong bóng thoại, hiệu ứng Phản đối/búa |
-| `js/retrieval.js` | Tra cứu giáo trình trong trình duyệt để đưa đoạn liên quan vào prompt |
-| `js/gemini.js` | Gọi Gemini API |
-| `js/app.js` | Luồng phiên toà, đồng hồ, phản đối, chấm điểm |
+| `index.html`, `style.css` | Giao diện |
+| `js/app.js` | Luồng chơi, câu hỏi nhanh, phản đối, chấm điểm |
+| `js/scene.js` | Cảnh phòng xử án (SVG), nhân vật, bong bóng thoại, hiệu ứng |
+| `js/gemini.js` | Gọi Gemini API từ trình duyệt |
+| `js/retrieval.js` | Tra cứu giáo trình để đưa đoạn liên quan vào prompt |
+| `data/corpus.js` | Giáo trình cắt thành 21 mục (II.1.a … III.3.b4), có số trang |
+| `data/cases.js` | 6 tình huống: bối cảnh, luận điểm, vấn đề vận dụng từng vòng, gợi ý |
+| `data/quiz.js` | Ngân hàng 24 câu trắc nghiệm có giải thích |
 
-Muốn thêm vụ án: sao chép một mục trong `data/cases.js` và sửa nội dung. Mã trong `sources` và trong ngoặc vuông của `hints` phải khớp mã trong `data/corpus.js`.
+Thêm tình huống hoặc câu hỏi: sao chép một mục trong `data/cases.js` hoặc `data/quiz.js` rồi sửa nội dung. Mã mục trong `source`, `sources` và trong ngoặc vuông phải khớp với `data/corpus.js`.
 
-## Luật chơi
+## Lưu ý
 
-- Công tố viên (trái) và Luật sư (phải) đứng đối diện, Thẩm phán ngồi giữa. Lời nói hiện bằng bong bóng thoại trên đầu nhân vật; bấm vào bong bóng để hiện hết chữ ngay. Toàn bộ lời thoại được lưu ở tab **Biên bản**.
-
-- Công tố viên bảo vệ luận điểm (khớp giáo trình); Luật sư phản bác (phản đề, khó hơn).
-- Mỗi vòng: Công tố viên trình bày trước, Luật sư sau. Giữa phiên, Thẩm phán chất vấn người chơi.
-- **Phản đối!**: đúng +3 điểm, sai −2 điểm. Đồng hồ tạm dừng khi đang phản đối.
-- Bản án: 4 tiêu chí × 10 điểm (đúng lý luận, dẫn chứng, phản bác, logic) + điểm phản đối, so với đối thủ AI.
+- AI có thể sai. Hãy đối chiếu với giáo trình.
+- Dự án học tập, phi thương mại. Nội dung kiến thức thuộc giáo trình Kinh tế chính trị Mác – Lênin.
