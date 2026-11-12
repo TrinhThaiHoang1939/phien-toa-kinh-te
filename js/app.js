@@ -11,7 +11,7 @@
     ["rebuttal", "Phản biện"]
   ];
   const OBJ_WIN = 3, OBJ_LOSE = -2;
-  const QUICK_COUNT = 10, QUIZ_SECONDS = 30;
+  const QUIZ_SECONDS = 30;
   const ID_RE = "I{1,3}\\.\\d\\.[a-zđ]\\d?";
   const CITE_RE = new RegExp("\\[(" + ID_RE + "(?:\\s*[,;]\\s*" + ID_RE + ")*)\\]", "g");
 
@@ -21,8 +21,23 @@
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) { /* trình duyệt chặn lưu */ } },
     del(k) { try { localStorage.removeItem(k); } catch (_) { /* bỏ qua */ } }
   };
-  const settings = Object.assign({ key: "", model: Gemini.DEFAULT_MODEL, demo: false }, store.get("ptkt.settings", {}));
-  const aiReady = () => settings.demo || !!settings.key;
+  const CFG = window.APP_CONFIG || {};
+  const settings = { key: (CFG.apiKey || "").trim(), model: CFG.model || Gemini.DEFAULT_MODEL, demo: !(CFG.apiKey || "").trim() };
+
+  // Gọi Gemini; nếu model không tồn tại (404) thì tự chọn model khả dụng rồi thử lại một lần.
+  async function askAI(opts) {
+    try {
+      return await Gemini.generate(Object.assign({ key: settings.key, model: settings.model }, opts));
+    } catch (e) {
+      if (!/Không tìm thấy model/.test(e.message) || settings.modelChecked) throw e;
+      settings.modelChecked = true;
+      const list = await Gemini.listModels(settings.key);
+      if (!list.length) throw e;
+      settings.model = list[0].id;
+      renderModeBanner();
+      return Gemini.generate(Object.assign({ key: settings.key, model: settings.model }, opts));
+    }
+  }
 
   let S = null; // trạng thái phiên đang chơi
 
@@ -60,118 +75,60 @@
   const uniqChunks = (arr) => { const seen = new Set(); return arr.filter((c) => c && !seen.has(c.id) && seen.add(c.id)); };
   const docsBlock = (chunks) => chunks.map((c) => `[${c.id}] ${c.title} (tr. ${c.pages})\n${c.text}`).join("\n\n---\n\n");
   function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
-  const mode = () => document.querySelector('input[name="mode"]:checked').value;
+  const radio = (name) => document.querySelector(`input[name="${name}"]:checked`).value;
 
   // ---------------- Trang chủ ----------------
   let pickedCase = null;
 
   function renderCases() {
     $("#case-grid").innerHTML = CASES.map((c, i) => `
-      <button type="button" class="case-card" data-case="${esc(c.id)}">
-        <span class="case-no">Tình huống ${String(i + 1).padStart(2, "0")}</span>
-        <span class="case-title">${esc(c.title)}</span>
-        <span class="case-topic">${esc(c.topic)}</span>
-        <span class="case-claim">${esc(c.claim)}</span>
+      <button type="button" class="level-card" data-case="${esc(c.id)}">
+        <span class="level-no">${String(i + 1).padStart(2, "0")}</span>
+        <span class="level-body">
+          <span class="level-topic">${esc(c.topic)}</span>
+          <span class="level-title">${esc(c.title)}</span>
+          <span class="level-claim">${esc(c.claim)}</span>
+          <span class="level-meta">${c.sources.map((id) => `<i>${esc(id)}</i>`).join("")}</span>
+        </span>
+        <span class="level-go" aria-hidden="true">▸</span>
       </button>`).join("");
+  }
+
+  function goPanel(name) {
+    document.querySelectorAll("#screen-setup .panel").forEach((p) => p.classList.toggle("active", p.id === "panel-" + name));
+    window.scrollTo(0, 0);
+    if (name === "role") renderPickedCase();
+  }
+
+  function renderPickedCase() {
+    const i = CASES.findIndex((c) => c.id === pickedCase);
+    const c = CASES[i];
+    if (!c) return;
+    $("#picked-case").innerHTML = `<span class="level-no small">${String(i + 1).padStart(2, "0")}</span>
+      <span><span class="level-topic">${esc(c.topic)}</span><b>${esc(c.title)}</b><span class="pc-claim">${esc(c.claim)}</span></span>`;
+    updateStart();
   }
 
   function renderModeBanner() {
     const b = $("#mode-banner");
-    if (settings.key && !settings.demo) {
+    if (!settings.demo) {
       b.className = "mode-banner ok";
-      b.innerHTML = `Đã kết nối Gemini · <b>${esc(Gemini.cleanModel(settings.model))}</b>`;
-    } else if (settings.demo) {
-      b.className = "mode-banner demo";
-      b.innerHTML = 'Đang chơi <b>không cần AI</b> — đối thủ dùng lập luận mẫu. <button type="button" class="link" data-open-settings>Kết nối Gemini</button>';
+      b.innerHTML = `Đối thủ &amp; Thẩm phán: <b>Gemini</b> · ${esc(Gemini.cleanModel(settings.model))}`;
     } else {
-      b.className = "mode-banner warn";
-      b.innerHTML = 'Ôn tập nhanh chơi được ngay. Để tranh luận với AI, <button type="button" class="link" data-open-settings>nhập Gemini API key</button>.';
+      b.className = "mode-banner demo";
+      b.innerHTML = "Chế độ trình diễn: đối thủ dùng lập luận mẫu từ giáo trình.";
     }
   }
 
   function updateStart() {
-    const m = mode();
-    $("#debate-setup").hidden = m !== "debate";
-    $("#quick-setup").hidden = m !== "quick";
-    const btn = $("#btn-start"), hint = $("#start-hint");
-    if (m === "quick") {
-      btn.disabled = false;
-      btn.textContent = "Bắt đầu ôn tập";
-      hint.textContent = "10 câu ngẫu nhiên · không cần API key.";
-      return;
-    }
-    btn.textContent = "Mở phiên toà";
-    btn.disabled = !pickedCase;
-    hint.textContent = !pickedCase ? "Chọn một tình huống để bắt đầu."
-      : aiReady() ? "Sẵn sàng. Thẩm phán sẽ khai mạc khi bạn bấm nút."
-      : "Cần nhập Gemini API key, hoặc bật “Chơi không cần AI” trong Cài đặt AI.";
-  }
-
-  // ---------------- Cài đặt AI ----------------
-  function fillModelSelect(list, selected) {
-    const ids = list.map((m) => m.id);
-    if (selected && !ids.includes(selected)) list = [{ id: selected, label: selected }].concat(list);
-    $("#set-model").innerHTML = list.map((m) => `<option value="${esc(m.id)}">${esc(m.label === m.id ? m.id : m.label + " — " + m.id)}</option>`).join("");
-    $("#set-model").value = selected || (list[0] && list[0].id) || "";
-  }
-  function setMsg(text, cls) { const m = $("#settings-msg"); m.className = "small " + (cls || ""); m.textContent = text; }
-
-  function openSettings() {
-    $("#set-key").value = settings.key;
-    $("#set-demo").checked = settings.demo;
-    fillModelSelect(store.get("ptkt.models", []), Gemini.cleanModel(settings.model));
-    setMsg("");
-    $(".getkey").open = !settings.key;
-    $("#dlg-settings").showModal();
-  }
-
-  async function loadModels() {
-    setMsg("Đang tải danh sách model…");
-    try {
-      const list = await Gemini.listModels($("#set-key").value.trim());
-      if (!list.length) throw new Error("Không tìm thấy model nào hỗ trợ tạo văn bản.");
-      store.set("ptkt.models", list);
-      const cur = $("#set-model").value;
-      fillModelSelect(list, list.some((m) => m.id === cur) && cur !== Gemini.DEFAULT_MODEL ? cur : list[0].id);
-      setMsg(`Tìm thấy ${list.length} model. Đã chọn ${$("#set-model").value}.`, "ok");
-    } catch (e) { setMsg(e.message, "err"); }
-  }
-
-  async function testKey() {
-    setMsg("Đang kiểm tra…");
-    try {
-      const out = await Gemini.generate({ key: $("#set-key").value.trim(), model: $("#set-model").value, prompt: "Trả lời đúng một cụm từ: Sẵn sàng", temperature: 0 });
-      setMsg("Kết nối thành công. Gemini trả lời: " + out.slice(0, 60), "ok");
-    } catch (e) { setMsg(e.message, "err"); }
-  }
-
-  function saveSettings() {
-    settings.key = $("#set-key").value.trim();
-    settings.model = $("#set-model").value || Gemini.DEFAULT_MODEL;
-    settings.demo = $("#set-demo").checked;
-    store.set("ptkt.settings", settings);
-    renderModeBanner();
-    updateStart();
-  }
-
-  function clearKey() {
-    $("#set-key").value = "";
-    settings.key = "";
-    store.set("ptkt.settings", settings);
-    store.del("ptkt.models");
-    setMsg("Đã xoá key khỏi trình duyệt này.", "ok");
-    renderModeBanner();
-    updateStart();
+    $("#start-hint").textContent = settings.demo
+      ? "Đối thủ mẫu — điểm tranh luận được ước lượng tự động."
+      : `Đối thủ và Thẩm phán: Gemini · ${Gemini.cleanModel(settings.model)}`;
   }
 
   // ---------------- Hồ sơ & giáo trình ----------------
   function renderDossier() {
-    if (S.mode === "quick") {
-      $("#tab-case").innerHTML = `
-        <h3>Ôn tập nhanh</h3>
-        <p class="story">${QUICK_COUNT} câu trắc nghiệm chọn ngẫu nhiên từ ngân hàng ${QUIZ.length} câu, bám sát giáo trình Chương 4, Mục II–III. Mỗi câu có ${QUIZ_SECONDS} giây.</p>
-        <div class="claim"><div class="eyebrow">Mẹo</div>Đọc kỹ từng phương án. Sau mỗi câu, Thẩm phán giải thích và chỉ ra mục giáo trình — bấm vào mã mục để đọc lại.</div>`;
-    } else {
+    {
       const c = S.c, me = S.role, ai = S.aiRole;
       $("#tab-case").innerHTML = `
         <h3>${esc(c.title)}</h3>
@@ -252,33 +209,29 @@
 
   function showRetry(err, fn) {
     stopThinking();
-    const el = Stage.alert(`<p>${esc(err.message || err)}</p><div><button type="button" class="btn gold small">Thử lại</button> <button type="button" class="btn ghost small" data-demo>Chơi tiếp không cần AI</button></div>`);
+    const el = Stage.alert(`<p>${esc(err.message || err)}</p><div><button type="button" class="btn gold small">Thử lại</button> <button type="button" class="btn ghost small" data-demo>Chơi tiếp với đối thủ mẫu</button></div>`);
     el.querySelector(".btn.gold").onclick = () => { el.remove(); fn(); };
     el.querySelector("[data-demo]").onclick = () => {
-      settings.demo = true; store.set("ptkt.settings", settings); renderModeBanner();
-      el.remove(); toast("Đã chuyển sang chơi không cần AI."); fn();
+      settings.demo = true; renderModeBanner(); updateStart();
+      el.remove(); toast("Đã chuyển sang đối thủ mẫu."); fn();
     };
   }
 
   // ---------------- Bắt đầu ----------------
   function startGame() {
-    const m = mode();
-    if (m === "debate") {
-      if (!pickedCase) return;
-      if (!aiReady()) { openSettings(); toast("Nhập Gemini API key, hoặc bật “Chơi không cần AI”."); return; }
-    }
-    const role = document.querySelector('input[name="role"]:checked').value;
-    const rounds = +$("#opt-rounds").value;
-    const c = m === "debate" ? CASES.find((x) => x.id === pickedCase) : null;
+    if (!pickedCase) { goPanel("case"); return; }
+    const role = radio("role");
+    const rounds = +radio("rounds");
+    const c = CASES.find((x) => x.id === pickedCase);
     S = {
-      mode: m, c, role: m === "debate" ? role : null, aiRole: role === "prosecution" ? "defense" : "prosecution",
-      difficulty: $("#opt-difficulty").value, rounds, time: +$("#opt-time").value,
+      mode: "debate", c, role, aiRole: role === "prosecution" ? "defense" : "prosecution",
+      difficulty: radio("difficulty"), rounds, time: +radio("time"),
       messages: [], steps: [], idx: 0, objPoints: 0, objLog: [], objectTarget: null,
       busy: false, aiBusy: false, ended: false, waiting: null, usedSentences: new Set(), verdictData: null,
       quizItems: [], quizIdx: 0, quiz: { asked: 0, correct: 0, wrong: [] }
     };
 
-    if (m === "debate") {
+    {
       const tagged = shuffle(QUIZ.filter((q) => q.cases.includes(c.id)));
       const others = shuffle(QUIZ.filter((q) => !q.cases.includes(c.id) && q.cases.length === 0));
       S.quizItems = tagged.concat(others).slice(0, rounds);
@@ -290,16 +243,11 @@
         if (r === mid) S.steps.push({ type: "question" }, { type: "answer" });
       }
       S.steps.push({ type: "verdict" });
-    } else {
-      S.quizItems = shuffle(QUIZ).slice(0, QUICK_COUNT);
-      S.steps.push({ type: "opening" });
-      S.quizItems.forEach((_, i) => S.steps.push({ type: "quiz", n: i + 1 }));
-      S.steps.push({ type: "quickEnd" });
     }
 
     $("#transcript").innerHTML = "";
-    $("#court-case").textContent = m === "debate" ? c.title : "Ôn tập nhanh";
-    $("#court-topic").textContent = m === "debate" ? c.topic : "Độc quyền và độc quyền nhà nước";
+    $("#court-case").textContent = c.title;
+    $("#court-topic").textContent = c.topic;
     $("#quiz-score").textContent = "0/0";
     $("#verdict").hidden = true;
     $("#btn-send").innerHTML = "Trình bày <kbd>Ctrl</kbd>+<kbd>Enter</kbd>";
@@ -307,8 +255,7 @@
     renderDossier();
     switchTab("case");
     hideChoices();
-    setComposer(false, m === "debate" ? "Phiên toà chuẩn bị bắt đầu…" : "Phần ôn tập chuẩn bị bắt đầu…");
-    $("#composer").classList.toggle("quick", m === "quick");
+    setComposer(false, "Phiên toà chuẩn bị bắt đầu…");
     showScreen("court");
     next();
   }
@@ -333,23 +280,17 @@
         Stage.focus("judge");
         await Stage.gavel(2);
         if (token !== S) return;
-        await Stage.banner(S.mode === "debate" ? "Phiên toà bắt đầu" : "Ôn tập nhanh");
+        await Stage.banner("Phiên toà bắt đầu");
         if (token !== S) return;
-        const text = S.mode === "debate"
-          ? `Phiên toà kiến thức bắt đầu.\n\nTình huống: ${S.c.story}\n\nLuận điểm: ${S.c.claim}\n\nMỗi vòng gồm một câu hỏi nhanh và một vấn đề vận dụng. Công tố viên bảo vệ luận điểm, Luật sư phản biện. Hãy dùng đúng khái niệm và dẫn giáo trình.`
-          : `Phần ôn tập bắt đầu: ${S.quizItems.length} câu hỏi về độc quyền và độc quyền nhà nước, mỗi câu ${QUIZ_SECONDS} giây. Hãy chọn đáp án đúng nhất.`;
+        const text = `Phiên toà kiến thức bắt đầu.\n\nTình huống: ${S.c.story}\n\nLuận điểm: ${S.c.claim}\n\nMỗi vòng gồm một câu hỏi nhanh và một vấn đề vận dụng. Công tố viên bảo vệ luận điểm, Luật sư phản biện. Hãy dùng đúng khái niệm và dẫn giáo trình.`;
         if (!await speak({ speaker: "judge", kind: "opening", text }, 95)) return;
         await sleep(400);
         return next();
       }
       case "quiz":
-        if (S.mode === "debate") {
-          $("#court-phase").textContent = `Vòng ${step.round}/${S.rounds}`;
-          await Stage.banner(`Vòng ${step.round}`, 1000);
-          if (token !== S) return;
-        } else {
-          $("#court-phase").textContent = `Câu ${step.n}/${S.quizItems.length}`;
-        }
+        $("#court-phase").textContent = `Vòng ${step.round}/${S.rounds}`;
+        await Stage.banner(`Vòng ${step.round}`, 1000);
+        if (token !== S) return;
         return quizStep(step);
       case "focus": {
         const f = S.c.focus[step.round - 1];
@@ -371,9 +312,6 @@
       case "verdict":
         $("#court-phase").textContent = "Tổng kết";
         return deliverVerdict(step);
-      case "quickEnd":
-        $("#court-phase").textContent = "Tổng kết";
-        return quickEnd();
     }
   }
 
@@ -431,8 +369,7 @@
     const token = S;
     const item = S.quizItems[S.quizIdx++];
     const opts = shuffle(item.options.map((t, i) => ({ t, ok: i === item.answer })));
-    const label = S.mode === "debate" ? "Câu hỏi nhanh" : `Câu ${step.n}/${S.quizItems.length}`;
-    if (!await speak({ speaker: "judge", kind: "quiz", text: `${label}: ${item.q}` }, 120)) return;
+    if (!await speak({ speaker: "judge", kind: "quiz", text: `Câu hỏi nhanh: ${item.q}` }, 120)) return;
     const pick = await askChoice(opts, QUIZ_SECONDS);
     if (token !== S) return;
     const right = opts.findIndex((o) => o.ok);
@@ -449,10 +386,10 @@
     if (token !== S) return;
     const text = `${ok ? "Chính xác!" : "Chưa đúng. Đáp án: " + item.options[item.answer] + "."} ${item.explain} [${item.source}]`;
     if (!await speak({ speaker: "judge", kind: "explain", text }, 110)) return;
-    const last = S.idx >= S.steps.length - 1 || S.steps[S.idx].type !== "quiz";
-    await waitContinue(S.mode === "quick" ? (last ? "Xem kết quả" : "Câu tiếp theo") : "Vào phần tranh luận");
+    await waitContinue("Vào phần tranh luận");
     if (token !== S) return;
     hideChoices();
+    setComposer(false, "Đang chờ…");
     next();
   }
 
@@ -561,8 +498,8 @@
         let task = `Vấn đề của vòng này: “${focus}”. Trả lời trực tiếp vấn đề bằng khái niệm và lý luận trong giáo trình, vận dụng vào tình huống.`;
         if (opponentSpoke) task += ` Đồng thời phản biện ý chính trong phát biểu vừa rồi của ${ROLE[me]} (người chơi), chỉ ra chỗ hiểu chưa đúng hoặc thiếu nếu có.`;
         if (step.round === S.rounds) task += " Đây là vòng cuối: kết bằng một câu khái quát.";
-        text = await Gemini.generate({
-          key: settings.key, model: settings.model, temperature: S.difficulty === "easy" ? 0.9 : 0.75,
+        text = await askAI({
+          temperature: S.difficulty === "easy" ? 0.9 : 0.75,
           system: `Bạn đóng vai ${ROLE[ai]} trong một trò chơi ôn tập học phần Kinh tế chính trị Mác – Lênin (Chương 4: độc quyền và độc quyền nhà nước). Trò chơi dùng hình thức phiên toà chỉ để tạo không khí; nội dung là KIỂM TRA KIẾN THỨC và VẬN DỤNG LÝ LUẬN. Người chơi là ${ROLE[me]} phía bên kia.
 
 TÌNH HUỐNG: ${c.title}
@@ -629,8 +566,8 @@ Quy tắc:
       } else {
         const mine = S.messages.filter((m) => m.isPlayer).map((m) => m.text).join(" ");
         const chunks = uniqChunks(S.c.sources.map(Retrieval.byId).concat(Retrieval.search(mine + " " + S.c.claim, { k: 3 }))).slice(0, 5);
-        const out = await Gemini.generate({
-          key: settings.key, model: settings.model, json: true, temperature: 0.5,
+        const out = await askAI({
+          json: true, temperature: 0.5,
           system: "Bạn là Thẩm phán điều khiển một trò chơi ôn tập Kinh tế chính trị Mác – Lênin. Bạn kiểm tra kiến thức và khả năng vận dụng của người chơi, công tâm, ngắn gọn. Chỉ trả lời bằng JSON.",
           prompt: `TÀI LIỆU:\n${docsBlock(chunks)}\n\nTÌNH HUỐNG: ${S.c.title}\nLuận điểm: ${S.c.claim}\n\nDIỄN BIẾN:\n${transcriptText(12)}\n\nĐặt MỘT câu hỏi vận dụng ngắn (tối đa 40 từ) cho ${ROLE[S.role]} (người chơi): kiểm tra một khái niệm then chốt trong giáo trình hoặc chỗ người chơi hiểu chưa rõ, và yêu cầu áp dụng vào tình huống. Không dùng thuật ngữ pháp lý.\nTrả về JSON: {"question": "..."}`
         });
@@ -686,11 +623,11 @@ Quy tắc:
         const ok = reason.length >= 40 && /\[|giáo trình|sai|nhầm|không đúng|bịa|lạc đề|xuyên tạc/i.test(reason);
         r = { sustained: ok, explanation: ok
           ? "Lý do phản đối cụ thể, có căn cứ giáo trình. Đối thủ cần điều chỉnh lại lập luận."
-          : "Lý do chưa chỉ ra được lỗi kiến thức cụ thể. (Khi chơi không cần AI, phản đối được chấp nhận nếu lý do đủ cụ thể và có viện dẫn giáo trình.)" };
+          : "Lý do chưa chỉ ra được lỗi kiến thức cụ thể. (Với đối thủ mẫu, phản đối được chấp nhận nếu lý do đủ cụ thể và có viện dẫn giáo trình.)" };
       } else {
         const chunks = uniqChunks(Retrieval.search(target.text + " " + reason, { k: 4, boost: S.c.sources }));
-        r = await Gemini.generate({
-          key: settings.key, model: settings.model, json: true, temperature: 0.2,
+        r = await askAI({
+          json: true, temperature: 0.2,
           system: "Bạn là Thẩm phán điều khiển một trò chơi ôn tập Kinh tế chính trị Mác – Lênin. Bạn phán quyết công tâm, dựa trên giáo trình được cung cấp. Chỉ trả lời bằng JSON.",
           prompt: `TÀI LIỆU:\n${docsBlock(chunks)}\n\nPHÁT BIỂU BỊ PHẢN ĐỐI (của ${ROLE[S.aiRole]}, AI):\n${target.text}\n\nLÝ DO PHẢN ĐỐI (của người chơi):\n${reason}\n\nChấp nhận (sustained = true) chỉ khi phát biểu thực sự có lỗi kiến thức — hiểu sai hoặc xuyên tạc lý luận so với giáo trình, bịa số liệu, hoặc lạc đề — VÀ lý do người chơi chỉ ra đúng lỗi đó. Bất đồng quan điểm thông thường không phải căn cứ. Nếu không, bác bỏ.\nTrả về JSON: {"sustained": true hoặc false, "explanation": "2–3 câu giải thích kiến thức đúng, ghi mã mục giáo trình trong ngoặc vuông nếu cần"}`
         });
@@ -742,8 +679,8 @@ Quy tắc:
         const chunks = uniqChunks(S.c.sources.map(Retrieval.byId).concat(Retrieval.search(mine + " " + S.c.claim, { k: 4 }))).slice(0, 6);
         const objSummary = S.objLog.length ? S.objLog.map((o, i) => `${i + 1}. ${o.sustained ? "Chấp nhận" : "Bác bỏ"} — ${o.reason}`).join("\n") : "Không có.";
         const quizSummary = `${S.quiz.correct}/${S.quiz.asked} câu đúng` + (S.quiz.wrong.length ? `; sai: ${S.quiz.wrong.map((w) => w.item.q).join(" | ")}` : "");
-        v = await Gemini.generate({
-          key: settings.key, model: settings.model, json: true, temperature: 0.3,
+        v = await askAI({
+          json: true, temperature: 0.3,
           system: "Bạn là Thẩm phán của một trò chơi ôn tập Kinh tế chính trị Mác – Lênin. Bạn đánh giá KIẾN THỨC và khả năng VẬN DỤNG của người chơi một cách nghiêm túc, công bằng, dựa trên giáo trình; nhận xét cụ thể, mang tính xây dựng, như một giảng viên. Chỉ trả lời bằng JSON hợp lệ.",
           prompt: `TÀI LIỆU:\n${docsBlock(chunks)}\n\nTÌNH HUỐNG: ${S.c.title}\nLuận điểm: ${S.c.claim}\nNgười chơi: ${ROLE[S.role]} — ${S.c[S.role]}\nĐối thủ AI: ${ROLE[S.aiRole]} — ${S.c[S.aiRole]}\nCác vấn đề vận dụng: ${S.c.focus.slice(0, S.rounds).join(" | ")}\n\nBIÊN BẢN:\n${transcriptText()}\n\nCâu hỏi nhanh (tính điểm riêng): ${quizSummary}\nPhản đối (tính điểm riêng): ${objSummary}\n\nChấm phần TRANH LUẬN của người chơi và của đối thủ AI theo 4 tiêu chí, mỗi tiêu chí 0–10 (số nguyên):\n- knowledge: hiểu và dùng đúng khái niệm, lý luận giáo trình\n- application: vận dụng lý luận vào tình huống, trả lời đúng vấn đề của từng vòng\n- evidence: dẫn chứng, ví dụ, viện dẫn mục giáo trình\n- rebuttal: phản biện trúng điểm yếu của bên kia\nLượt bỏ trống hoặc sơ sài phải bị điểm thấp. Không thiên vị AI. Bên phản đề vẫn có thể đạt điểm cao nếu khai thác đúng những điểm giáo trình thừa nhận và không xuyên tạc lý luận.\n\nTrả về JSON đúng cấu trúc:\n{"player": {"knowledge": 0, "application": 0, "evidence": 0, "rebuttal": 0},\n "opponent": {"knowledge": 0, "application": 0, "evidence": 0, "rebuttal": 0},\n "comments": {"knowledge": "1 câu nhận xét cho người chơi", "application": "...", "evidence": "...", "rebuttal": "..."},\n "verdict": "Nhận xét tổng quát của Thẩm phán về kiến thức và cách vận dụng của người chơi, 3–4 câu",\n "strengths": ["2–3 điểm mạnh"],\n "improvements": ["2–3 điểm cần cải thiện, nêu rõ khái niệm nào cần ôn"],\n "key_points": [{"point": "kiến thức then chốt của tình huống, 1 câu", "source": "mã mục, ví dụ II.1.b"}]}\nkey_points gồm 3–4 mục.`
         });
@@ -768,24 +705,6 @@ Quy tắc:
       if (token !== S) return;
       showRetry(e, () => deliverVerdict(step));
     }
-  }
-
-  async function quickEnd() {
-    const token = S;
-    S.ended = true;
-    setComposer(false, "Phần ôn tập đã kết thúc");
-    $("#btn-send").disabled = false;
-    $("#btn-send").innerHTML = "Xem kết quả";
-    Stage.focus("judge");
-    await Stage.gavel(2);
-    if (token !== S) return;
-    const q = S.quiz;
-    const msg = q.correct === q.asked ? "Xuất sắc, bạn trả lời đúng tất cả các câu!"
-      : `Bạn trả lời đúng ${q.correct}/${q.asked} câu. Hãy xem lại các câu chưa đúng và mục giáo trình tương ứng.`;
-    await speak({ speaker: "judge", kind: "final", text: msg }, 90);
-    if (token !== S) return;
-    await sleep(500);
-    if (token === S) showResult();
   }
 
   function demoVerdict() {
@@ -814,7 +733,7 @@ Quy tắc:
         evidence: cites ? "Có viện dẫn mục giáo trình." : "Nên trích mã mục như [II.1.b] khi nêu khái niệm.",
         rebuttal: rebut ? "Đã phản hồi lập luận của bên kia." : "Chưa phản biện trực tiếp ý của bên kia."
       },
-      verdict: "Phiên toà kết thúc. Khi chơi không cần AI, điểm tranh luận được ước lượng tự động theo khái niệm, viện dẫn giáo trình và mức độ phản biện. Kết nối Gemini để được Thẩm phán AI nhận xét chi tiết.",
+      verdict: "Phiên toà kết thúc. Với đối thủ mẫu, điểm tranh luận được ước lượng tự động theo khái niệm, viện dẫn giáo trình và mức độ phản biện.",
       strengths: [cites ? "Biết viện dẫn giáo trình" : "Tham gia đầy đủ các lượt", rebut ? "Có phản biện bên kia" : "Giữ được lập trường"],
       improvements: ["Nêu định nghĩa khái niệm trước khi vận dụng", "Trích mã mục giáo trình cho mỗi luận cứ"],
       key_points: S.c.hints.prosecution.map((h) => ({ point: h.replace(/\s*\[[^\]]+\]\s*$/, "") + ".", source: citedIds(h)[0] || "" })),
@@ -833,7 +752,7 @@ Quy tắc:
     const q = S.quiz;
     const quizPct = q.asked ? q.correct / q.asked : 0;
     let score, chips;
-    if (S.mode === "debate") {
+    {
       const v = S.verdictData || {};
       const dP = sumCrit(v.player), dA = sumCrit(v.opponent);
       score = clamp(Math.round((dP / 40) * 60 + quizPct * 40 + S.objPoints), 0, 100);
@@ -858,19 +777,13 @@ Quy tắc:
         const c = Retrieval.byId(id);
         return `<li>${esc(k.point)} ${c ? `<button type="button" class="src-chip" data-src="${esc(id)}">${esc(id)} · tr. ${esc(c.pages)}</button>` : ""}</li>`;
       }).join("");
-      $("#v-note").textContent = v.demo ? "Chơi không cần AI: điểm tranh luận chỉ mang tính ước lượng." : `Thẩm phán AI: ${Gemini.cleanModel(settings.model)}. Điểm = tranh luận (60%) + câu hỏi nhanh (40%) + điểm phản đối. AI có thể sai — hãy đối chiếu giáo trình.`;
-    } else {
-      score = Math.round(quizPct * 100);
-      chips = [`<div><b>${q.correct}/${q.asked}</b><span>Câu trả lời đúng</span></div>`];
-      $("#v-note").textContent = "Mỗi lần chơi, 10 câu được chọn ngẫu nhiên từ ngân hàng " + QUIZ.length + " câu.";
+      $("#v-note").textContent = v.demo ? "Đối thủ mẫu: điểm tranh luận chỉ mang tính ước lượng." : `Thẩm phán AI: ${Gemini.cleanModel(settings.model)}. Điểm = tranh luận (60%) + câu hỏi nhanh (40%) + điểm phản đối. AI có thể sai — hãy đối chiếu giáo trình.`;
     }
     const [title, sub] = rank(score);
     $("#v-score").textContent = score;
     $("#v-title").textContent = title;
-    $("#v-sub").textContent = (S.mode === "debate" ? `${S.c.title} · ${ROLE[S.role]} · ` : "Ôn tập nhanh · ") + sub;
+    $("#v-sub").textContent = `${S.c.title} · ${ROLE[S.role]} · ${sub}`;
     $("#v-breakdown").innerHTML = chips.join("");
-    $("#v-debate").hidden = S.mode !== "debate";
-    $("#v-keys-wrap").hidden = S.mode !== "debate";
     $("#v-review-wrap").hidden = !q.wrong.length;
     $("#v-review").innerHTML = q.wrong.map((w) => `
       <li><div class="rq">${esc(w.item.q)}</div>
@@ -882,9 +795,7 @@ Quy tắc:
 
   function exportTranscript() {
     if (!S) return;
-    const head = S.mode === "debate"
-      ? [`PHIÊN TOÀ KINH TẾ — ${S.c.title}`, `Vai: ${ROLE[S.role]} · Độ khó: ${S.difficulty} · ${new Date().toLocaleString("vi-VN")}`]
-      : ["PHIÊN TOÀ KINH TẾ — Ôn tập nhanh", new Date().toLocaleString("vi-VN")];
+    const head = [`PHIÊN TOÀ KINH TẾ — ${S.c.title}`, `Vai: ${ROLE[S.role]} · Độ khó: ${S.difficulty} · ${new Date().toLocaleString("vi-VN")}`];
     const lines = head.concat(["", transcriptText(), "", `Câu hỏi nhanh: ${S.quiz.correct}/${S.quiz.asked}`]);
     if (S.verdictData) {
       const p = S.verdictData.player || {}, o = S.verdictData.opponent || {};
@@ -893,13 +804,13 @@ Quy tắc:
     const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = S.mode === "debate" ? `bien-ban-${S.c.id}.txt` : "on-tap-nhanh.txt";
+    a.download = `bien-ban-${S.c.id}.txt`;
     document.body.appendChild(a);
     a.click();
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
   }
 
-  function leaveGame(force) {
+  function leaveGame(force, panel) {
     if (!force && S && !S.ended && S.messages.length > 1 && !confirm("Thoát? Tiến trình hiện tại sẽ mất.")) return;
     if (S) stopTimer();
     S = null;
@@ -907,6 +818,7 @@ Quy tắc:
     hideChoices();
     $("#verdict").hidden = true;
     showScreen("setup");
+    goPanel(panel || "title");
     renderModeBanner();
     updateStart();
   }
@@ -919,31 +831,30 @@ Quy tắc:
   // ---------------- Gắn sự kiện ----------------
   function bind() {
     $("#corpus-source").textContent = window.CORPUS_SOURCE || "";
-    $("#quiz-total").textContent = QUIZ.length;
     Stage.mount($("#stage"), richText);
+    $("#title-bg").innerHTML = Stage.scene("tt-");
+    $("#portrait-prosecution").innerHTML = Stage.portrait("prosecution");
+    $("#portrait-defense").innerHTML = Stage.portrait("defense");
     renderCases();
     renderModeBanner();
     updateStart();
 
-    document.querySelectorAll('input[name="mode"]').forEach((r) => r.addEventListener("change", updateStart));
     $("#case-grid").addEventListener("click", (e) => {
-      const card = e.target.closest(".case-card");
+      const card = e.target.closest(".level-card");
       if (!card) return;
       pickedCase = card.dataset.case;
-      document.querySelectorAll(".case-card").forEach((c) => c.classList.toggle("picked", c === card));
-      updateStart();
+      document.querySelectorAll(".level-card").forEach((c) => c.classList.toggle("picked", c === card));
+      goPanel("role");
     });
+    $("#btn-play").addEventListener("click", () => goPanel("case"));
+    document.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => goPanel(b.dataset.go)));
+    $("#btn-how").addEventListener("click", () => $("#dlg-how").showModal());
+    $("#btn-about").addEventListener("click", () => $("#dlg-about").showModal());
     $("#btn-start").addEventListener("click", startGame);
-    $("#btn-settings").addEventListener("click", openSettings);
     document.addEventListener("click", (e) => {
-      if (e.target.closest("[data-open-settings]")) openSettings();
       const src = e.target.closest(".src-chip");
       if (src) openDoc(src.dataset.src);
     });
-    $("#btn-load-models").addEventListener("click", loadModels);
-    $("#btn-test-key").addEventListener("click", testKey);
-    $("#btn-clear-key").addEventListener("click", clearKey);
-    $("#settings-form").addEventListener("submit", (e) => { if (e.submitter && e.submitter.id === "btn-save-settings") saveSettings(); });
 
     $("#btn-send").addEventListener("click", () => {
       if (S && S.ended) { Stage.skip(); showResult(); return; }
@@ -964,9 +875,9 @@ Quy tắc:
     document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => switchTab(t.dataset.tab)));
     $("#doc-search").addEventListener("input", (e) => renderDocList(e.target.value));
 
-    $("#btn-leave").addEventListener("click", () => leaveGame(false));
+    $("#btn-leave").addEventListener("click", () => leaveGame(false, "title"));
     $("#btn-review").addEventListener("click", () => ($("#verdict").hidden = true));
-    $("#btn-again").addEventListener("click", () => leaveGame(true));
+    $("#btn-again").addEventListener("click", () => leaveGame(true, "case"));
     $("#btn-export").addEventListener("click", exportTranscript);
   }
 

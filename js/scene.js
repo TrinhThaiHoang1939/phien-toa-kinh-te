@@ -161,11 +161,9 @@
       </g>`;
   }
 
-  function svg() {
-    const pros = { robe: "#7a1f22", trim: "#d4a94e", tie: "#7a1f22", skin: "#f0c6a6", skinShade: "#d9a888", hair: "#2b1a12", brow: "#2b1a12", woman: true };
-    const def = { robe: "#1a1d26", trim: "#5d7fb0", tie: "#2f5f9c", skin: "#e7b893", skinShade: "#cc9b77", hair: "#1c140f", brow: "#1c140f", woman: false };
-    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <defs>
+  const PROS = { robe: "#7a1f22", trim: "#d4a94e", tie: "#7a1f22", skin: "#f0c6a6", skinShade: "#d9a888", hair: "#2b1a12", brow: "#2b1a12", woman: true };
+  const DEF = { robe: "#1a1d26", trim: "#5d7fb0", tie: "#2f5f9c", skin: "#e7b893", skinShade: "#cc9b77", hair: "#1c140f", brow: "#1c140f", woman: false };
+  const DEFS = `<defs>
         <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a2618"/><stop offset="1" stop-color="#24170e"/></linearGradient>
         <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4d321f"/><stop offset="1" stop-color="#3a2516"/></linearGradient>
         <linearGradient id="drape" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6e2420"/><stop offset="1" stop-color="#4a1814"/></linearGradient>
@@ -174,14 +172,30 @@
         <linearGradient id="bench" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6d4829"/><stop offset="1" stop-color="#46301b"/></linearGradient>
         <linearGradient id="brass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f3d58a"/><stop offset="1" stop-color="#b8893c"/></linearGradient>
         <radialGradient id="spotg"><stop offset="0" stop-color="rgba(255,226,160,.35)"/><stop offset="1" stop-color="rgba(255,226,160,0)"/></radialGradient>
-      </defs>
+      </defs>`;
+
+  // Đổi tên mọi id để có thể đặt nhiều bản vẽ trên cùng một trang.
+  function prefixIds(str, p) {
+    return p ? str.replace(/id="([^"]+)"/g, `id="${p}$1"`).replace(/url\(#([^)]+)\)/g, `url(#${p}$1)`) : str;
+  }
+
+  function svg(prefix, aspect) {
+    const pros = PROS, def = DEF;
+    return prefixIds(`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="${aspect || "xMidYMid meet"}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      ${DEFS}
       ${background()}
       ${judge()}
       <g id="char-prosecution" class="char side-left">${lawyer(pros)}</g>
       <g id="char-defense" class="char side-right"><g transform="translate(${W} 0) scale(-1 1)">${lawyer(def)}</g></g>
       ${podium(250, "CÔNG TỐ VIÊN", "prosecution")}
       ${podium(1350, "LUẬT SƯ", "defense")}
-    </svg>`;
+    </svg>`, prefix);
+  }
+
+  // Chân dung nhân vật (dùng ở màn chọn phe). Cả hai vẽ quay sang phải; bên Luật sư lật bằng CSS.
+  function portrait(side) {
+    return prefixIds(`<svg viewBox="96 370 330 300" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${DEFS}
+      <g class="char">${lawyer(side === "prosecution" ? PROS : DEF)}</g></svg>`, "pt-" + side + "-");
   }
 
   // ---------- Điều khiển ----------
@@ -348,5 +362,5 @@
     return el;
   }
 
-  window.Stage = { mount, setRoles, reset, say, thinking, clearThinking, hideBubble, banner, objection, gavel, stamp, alert, skip, focus };
+  window.Stage = { scene: (prefix) => svg(prefix, "xMidYMid slice"), portrait, mount, setRoles, reset, say, thinking, clearThinking, hideBubble, banner, objection, gavel, stamp, alert, skip, focus };
 })();
